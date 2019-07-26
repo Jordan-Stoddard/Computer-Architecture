@@ -40,7 +40,7 @@ class CPU:
         self.branchtable[JMP] = self.handle_JMP
         self.branchtable[JEQ] = self.handle_JEQ
         self.branchtable[JNE] = self.handle_JNE
-        self.FL = 2
+        self.FL = 6
         self.SP = 7
         self.flag = self.reg[self.FL] = 0
         # sets the stack pointer register's value to be 244 AKA 0xF4
@@ -70,20 +70,27 @@ class CPU:
         elif IR == JMP:
             self.branchtable[IR](operand_a)
         elif IR == JEQ:
-            self.branchtable[IR](operand_a)
+            self.branchtable[IR](operand_a, distance)
         elif IR == JNE:
-            self.branchtable[IR](operand_a)
+            self.branchtable[IR](operand_a, distance)
         elif IR == HLT:
             self.branchtable[IR]()
 
-    def handle_JNE(self, operand_a):
+    # A helper function that performs JNE per the ls8 spec.
+    def handle_JNE(self, operand_a, distance):
         if self.flag == 0:
             self.pc = self.reg[operand_a]
+        else:
+            self.pc += distance
 
-    def handle_JEQ(self, operand_a):
+    # A helper function that performs JEQ per the ls8 spec.
+    def handle_JEQ(self, operand_a, distance):
         if self.flag == 1:
             self.pc = self.reg[operand_a]
+        else:
+            self.pc += distance
     
+    # A helper function that performs JMP per the ls8 spec.
     def handle_JMP(self, operand_a):
         self.pc = self.reg[operand_a]
 
@@ -178,17 +185,9 @@ class CPU:
         elif op == "MUL":
             self.reg[reg_a] = self.reg[reg_a] * self.reg[reg_b]
         elif op == "CMP":
-            if self.reg[reg_a] == self.reg[reg_a]:
+            if self.reg[reg_a] == self.reg[reg_b]:
                 self.flag = 1
             else:
-                self.flag = 0
-            if self.reg[reg_a] < self.reg[reg_b]:
-                self.flag = 1
-            else:
-                self.flag = 0
-            if self.reg[reg_a] > self.reg[reg_b]:
-                self.flag = 1
-            else: 
                 self.flag = 0
         # elif op == "SUB": etc
         else:
@@ -217,7 +216,7 @@ class CPU:
     def run(self):
         """Run the CPU."""
         running = True
-        print(0b01001001)
+        # print(hex(int('01101010', 2)))
         while running:
             # Gets the current instruction from RAM
             IR = self.ram[self.pc]
