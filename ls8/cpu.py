@@ -1,6 +1,7 @@
 """CPU functionality."""
 import sys
 
+
 PRN = 0b01000111
 LDI = 0b10000010
 HLT = 0b00000001
@@ -10,6 +11,10 @@ POP = 0b01000110
 CALL = 0b01010000
 RET = 0b00010001
 ADD = 0b10100000
+CMP = 0b10100111
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
 
 
 
@@ -31,7 +36,13 @@ class CPU:
         self.branchtable[CALL] = self.handle_CALL
         self.branchtable[RET] = self.handle_RET
         self.branchtable[ADD] = self.handle_ADD
+        self.branchtable[CMP] = self.handle_CMP
+        self.branchtable[JMP] = self.handle_JMP
+        self.branchtable[JEQ] = self.handle_JEQ
+        self.branchtable[JNE] = self.handle_JNE
+        self.FL = 2
         self.SP = 7
+        self.flag = self.reg[self.FL] = 0
         # sets the stack pointer register's value to be 244 AKA 0xF4
         self.stack_pointer = self.reg[self.SP] = 244
 
@@ -54,8 +65,32 @@ class CPU:
             self.branchtable[IR]()
         elif IR == ADD:
             self.branchtable[IR](operand_a, operand_b, distance)
+        elif IR == CMP:
+            self.branchtable[IR](operand_a, operand_b, distance)
+        elif IR == JMP:
+            self.branchtable[IR](operand_a)
+        elif IR == JEQ:
+            self.branchtable[IR](operand_a)
+        elif IR == JNE:
+            self.branchtable[IR](operand_a)
         elif IR == HLT:
             self.branchtable[IR]()
+
+    def handle_JNE(self, operand_a):
+        if self.flag == 0:
+            self.pc = self.reg[operand_a]
+
+    def handle_JEQ(self, operand_a):
+        if self.flag == 1:
+            self.pc = self.reg[operand_a]
+    
+    def handle_JMP(self, operand_a):
+        self.pc = self.reg[operand_a]
+
+    # A helper function that performs CMP per the ls8 spec.
+    def handle_CMP(self, operand_a, operand_b, distance):
+        self.alu('CMP', operand_a, operand_b)
+        self.pc += distance
 
     # A helper function that performs ADD per the ls8 spec.
     def handle_ADD(self, operand_a, operand_b, distance):
@@ -142,6 +177,19 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "MUL":
             self.reg[reg_a] = self.reg[reg_a] * self.reg[reg_b]
+        elif op == "CMP":
+            if self.reg[reg_a] == self.reg[reg_a]:
+                self.flag = 1
+            else:
+                self.flag = 0
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = 1
+            else:
+                self.flag = 0
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = 1
+            else: 
+                self.flag = 0
         # elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -169,7 +217,7 @@ class CPU:
     def run(self):
         """Run the CPU."""
         running = True
-        # print(0b00011000)
+        print(0b01001001)
         while running:
             # Gets the current instruction from RAM
             IR = self.ram[self.pc]
